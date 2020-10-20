@@ -53,6 +53,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     }
 
     validateUrl(archive);
+    ctx.res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
     const files = await listFilesInZip(archive);
 
     return {

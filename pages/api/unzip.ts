@@ -16,6 +16,6 @@ export default async function UnzipApi(req: NowRequest, res: NowResponse) {
   }
 
   validateUrl(archive);
-  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate");
+  res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate");
   pipeFileToResponse(archive, path, res);
 }
