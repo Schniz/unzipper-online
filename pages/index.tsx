@@ -104,11 +104,11 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     } catch (e) {
       return {
         props: {
-          state: 'errorReading',
+          state: "errorReading",
           archive,
           message: e.message,
-        }
-      }
+        },
+      };
     }
   }
 
