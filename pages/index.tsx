@@ -121,9 +121,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     }
 
     validateUrl(archive);
-    ctx.res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate");
     try {
       const files = await listFilesInZip(archive);
+      ctx.res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate");
 
       return {
         props: {
