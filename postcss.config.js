@@ -3,8 +3,8 @@ module.exports = {
     "tailwindcss",
     // process.env.NODE_ENV === "production" ? purgecss : undefined,
     "postcss-preset-env",
-    require('cssnano')({
+    ['cssnano', {
       preset: 'default',
-    }),
+    }],
   ],
 };
