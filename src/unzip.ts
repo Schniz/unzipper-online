@@ -1,7 +1,7 @@
 import unzipper, { Entry } from "unzipper";
 import axios from "axios";
 import { Readable, Transform } from "stream";
-import { ServerResponse } from 'http';
+import { ServerResponse } from "http";
 
 export type File = { type: string; fileName: string };
 
