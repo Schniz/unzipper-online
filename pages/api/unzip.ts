@@ -1,6 +1,6 @@
 import { NowRequest, NowResponse } from "@vercel/node";
 import { pipeFileToResponse } from "../../src/unzip";
-import {validateUrl} from "../../src/validateUrl";
+import { validateUrl } from "../../src/validateUrl";
 
 export default async function UnzipApi(req: NowRequest, res: NowResponse) {
   const { archive, path } = req.query;
@@ -16,6 +16,6 @@ export default async function UnzipApi(req: NowRequest, res: NowResponse) {
   }
 
   validateUrl(archive);
-  res.setHeader("cache-control", "stale-while-revalidate");
+  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate");
   pipeFileToResponse(archive, path, res);
 }
