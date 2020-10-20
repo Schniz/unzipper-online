@@ -3,6 +3,8 @@ import { File, listFilesInZip } from "../src/unzip";
 import { validateUrl } from "../src/validateUrl";
 import { useRef } from "react";
 import { useRouter } from "next/router";
+import DocumentIcon from 'heroicons/react/solid/Document';
+import DocumentIconOutline from 'heroicons/react/outline/Document';
 
 type Props =
   | {
@@ -24,9 +26,9 @@ export default function Home(props: Props): NonNullable<React.ReactNode> {
   const router = useRouter();
 
   return (
-    <div>
-      See files in zips
+    <div className="min-h-screen min-w-screen">
       <form
+        className="p-4 bg-red-100"
         action="/"
         onSubmit={(e) => {
           e.preventDefault();
@@ -35,7 +37,9 @@ export default function Home(props: Props): NonNullable<React.ReactNode> {
           router.push(`/?archive=${archive}`);
         }}
       >
+        <h1 className="pb-4 font-bold tracking-wider uppercase">Zip browser</h1>
         <input
+          className="min-w-full p-4 rounded"
           name="archive"
           ref={textInputRef}
           type="url"
@@ -49,34 +53,41 @@ export default function Home(props: Props): NonNullable<React.ReactNode> {
           placeholder="https://example.com/file.zip"
         />
       </form>
-      {props.state === "errorReading" && (
-        <>
-          <h1>An error occured</h1>
-          <p>{props.message}</p>
-        </>
-      )}
-      {props.state === "listFiles" && (
-        <>
-          <h1>
-            Files in <code>{props.archive}</code>
-          </h1>
-          <ul>
-            {props.files
-              .filter((f) => f.type === "File")
-              .map((file) => {
-                const path = encodeURIComponent(file.fileName);
-                const archive = encodeURIComponent(props.archive);
-                return (
-                  <li key={file.fileName}>
-                    <a href={`/api/unzip?path=${path}&archive=${archive}`}>
-                      <code>{file.fileName}</code>
-                    </a>
-                  </li>
-                );
-              })}
-          </ul>
-        </>
-      )}
+      <div className="p-4">
+        {props.state === "errorReading" && (
+          <>
+            <h3 className="text-xl font-thin">An error occured</h3>
+            <p>{props.message}</p>
+          </>
+        )}
+        {props.state === "listFiles" && (
+          <>
+            <h3 className="text-xl font-thin">
+              Files in{" "}
+              <code className="inline-block p-1 text-sm leading-normal align-middle bg-red-100 rounded">
+                {props.archive}
+              </code>
+            </h3>
+            <ul className="pt-4 grid lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1">
+              {props.files
+                .filter((f) => f.type === "File")
+                .map((file) => {
+                  const path = encodeURIComponent(file.fileName);
+                  const archive = encodeURIComponent(props.archive);
+                  return (
+                    <li key={file.fileName}>
+                      <a className="flex items-center p-2 group" href={`/api/unzip?path=${path}&archive=${archive}`}>
+                        <DocumentIcon className="flex-none hidden inline w-6 h-6 group-hover:inline" />
+                        <DocumentIconOutline className="flex-none inline w-6 h-6 group-hover:hidden" />
+                        <code className="flex-1 pl-1 break-all">{file.fileName}</code>
+                      </a>
+                    </li>
+                  );
+                })}
+            </ul>
+          </>
+        )}
+      </div>
     </div>
   );
 }
