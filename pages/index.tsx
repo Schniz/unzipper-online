@@ -32,8 +32,8 @@ export default function Home(props: Props): NonNullable<React.ReactNode> {
       <Head>
         <title>
           The Unzipper
-          {props.state === "listFiles" && " : file list"}
-          {props.state === "errorReading" && " : an error occured"}
+          {props.state === "listFiles" ? " : file list" : null}
+          {props.state === "errorReading" ? " : an error occured" : null}
         </title>
       </Head>
       <div className="min-h-screen min-w-screen">
