@@ -1,14 +1,15 @@
 import { GetServerSideProps } from "next";
 import { File, listFilesInZip } from "../src/unzip";
+import { unzip } from "../src/zip";
 import { validateUrl } from "../src/validateUrl";
-import { useRef } from "react";
+import { useRef, useState, useEffect, ChangeEvent } from "react";
 import { useRouter } from "next/router";
 import DocumentIcon from "heroicons/react/solid/Document";
 import DocumentIconOutline from "heroicons/react/outline/Document";
 import Head from "next/head";
 import { AxiosError } from "axios";
 
-type Props =
+type PageState =
   | {
       state: "errorReading";
       message: string;
@@ -23,22 +24,45 @@ type Props =
       state: "home";
     };
 
-export default function Home(props: Props): NonNullable<React.ReactNode> {
+export default function Home(props: PageState): NonNullable<React.ReactNode> {
   const textInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const [pageState, setPageState] = useState<PageState>(props);
+  useEffect(() => {
+    setPageState(props);
+  }, [props]);
+  const userSelectedFile = async (a: ChangeEvent<HTMLInputElement>) => {
+    try {
+      const zip = await unzip(a.target.files?.[0]);
+      setPageState({
+        state: "listFiles",
+        archive: zip.name,
+        files: zip.files.map((e) => ({
+          type: e.dir ? "Directory" : "File",
+          fileName: e.name,
+        })),
+      });
+    } catch (err) {
+      setPageState({
+        state: "errorReading",
+        archive: a.target.files?.[0].name ?? "unknown",
+        message: err.message,
+      });
+    }
+  };
 
   return (
     <>
       <Head>
         <title>
           The Unzipper
-          {props.state === "listFiles" ? " : file list" : null}
-          {props.state === "errorReading" ? " : an error occured" : null}
+          {pageState.state === "listFiles" ? " : file list" : null}
+          {pageState.state === "errorReading" ? " : an error occured" : null}
         </title>
       </Head>
       <div className="min-h-screen min-w-screen">
         <form
-          className="p-4 bg-red-100"
+          className="p-4 bg-red-100 grid grid-cols-9 gap-4"
           action="/"
           onSubmit={(e) => {
             e.preventDefault();
@@ -49,45 +73,58 @@ export default function Home(props: Props): NonNullable<React.ReactNode> {
             router.push(`/?archive=${archive}`);
           }}
         >
-          <h1 className="pb-4 font-bold tracking-wider uppercase">
+          <h1 className="pb-4 font-bold tracking-wider uppercase col-span-9">
             The Unzipper
           </h1>
           <input
-            className="min-w-full p-4 rounded"
-            name="archive"
+            className="min-w-full p-4 rounded col-span-8"
+            name="webArchive"
             ref={textInputRef}
             type="url"
             defaultValue={
-              props.state === "listFiles"
-                ? props.archive
-                : props.state === "errorReading"
-                ? props.archive
+              pageState.state === "listFiles"
+                ? pageState.archive
+                : pageState.state === "errorReading"
+                ? pageState.archive
                 : ""
             }
             placeholder="https://example.com/file.zip"
           />
+          <label
+            htmlFor="clientArchive"
+            className="flex justify-center items-center col-span-1"
+          >
+            Browse...
+          </label>
+          <input
+            className="hidden"
+            type="file"
+            id="clientArchive"
+            name="clientArchive"
+            onChange={userSelectedFile}
+          />
         </form>
         <div className="p-4">
-          {props.state === "errorReading" && (
+          {pageState.state === "errorReading" && (
             <>
               <h3 className="text-xl font-thin">An error occured</h3>
-              <p>{props.message}</p>
+              <p>{pageState.message}</p>
             </>
           )}
-          {props.state === "listFiles" && (
+          {pageState.state === "listFiles" && (
             <>
               <h3 className="text-xl font-thin">
                 Files in{" "}
                 <code className="inline-block p-1 text-sm leading-normal align-middle bg-red-100 rounded">
-                  {props.archive}
+                  {pageState.archive}
                 </code>
               </h3>
               <ul className="pt-4 grid lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1">
-                {props.files
+                {pageState.files
                   .filter((f) => f.type === "File")
                   .map((file) => {
                     const path = encodeURIComponent(file.fileName);
-                    const archive = encodeURIComponent(props.archive);
+                    const archive = encodeURIComponent(pageState.archive);
                     return (
                       <li key={file.fileName}>
                         <a
@@ -112,7 +149,9 @@ export default function Home(props: Props): NonNullable<React.ReactNode> {
   );
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
+export const getServerSideProps: GetServerSideProps<PageState> = async (
+  ctx
+) => {
   const { archive } = ctx.query;
 
   if (archive) {
@@ -123,7 +162,10 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     validateUrl(archive);
     try {
       const files = await listFilesInZip(archive);
-      ctx.res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate");
+      ctx.res.setHeader(
+        "Cache-Control",
+        "s-maxage=3600, stale-while-revalidate"
+      );
 
       return {
         props: {
