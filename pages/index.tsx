@@ -19,6 +19,7 @@ type PageState =
       state: "listFiles";
       archive: string;
       files: File[];
+      origin: "Server" | "Client";
     }
   | {
       state: "home";
@@ -35,6 +36,7 @@ export default function Home(props: PageState): NonNullable<React.ReactNode> {
     try {
       const zip = await unzip(a.target.files?.[0]);
       setPageState({
+        origin: "Client",
         state: "listFiles",
         archive: zip.name,
         files: zip.files.map((e) => ({
@@ -129,7 +131,11 @@ export default function Home(props: PageState): NonNullable<React.ReactNode> {
                       <li key={file.fileName}>
                         <a
                           className="flex items-center p-2 group"
-                          href={`/api/unzip?path=${path}&archive=${archive}`}
+                          href={
+                            pageState.origin === "Server"
+                              ? `/api/unzip?path=${path}&archive=${archive}`
+                              : undefined
+                          }
                         >
                           <DocumentIcon className="flex-none hidden inline w-6 h-6 group-hover:inline" />
                           <DocumentIconOutline className="flex-none inline w-6 h-6 group-hover:hidden" />
@@ -169,6 +175,7 @@ export const getServerSideProps: GetServerSideProps<PageState> = async (
 
       return {
         props: {
+          origin: "Server",
           state: "listFiles",
           archive,
           files,
