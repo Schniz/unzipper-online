@@ -93,6 +93,8 @@ export default function Home(props: Props): NonNullable<React.ReactNode> {
         message: err.message,
       });
     }
+
+    router.push("/", { query: null }, { shallow: true });
   };
 
   return (
