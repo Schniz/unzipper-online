@@ -89,7 +89,7 @@ export default function Home(props: Props): NonNullable<React.ReactNode> {
     } catch (err) {
       setPageState({
         state: "errorReading",
-        archive: e.target.files?.[0].name ?? "unknown",
+        archive: e.target.files?.[0]?.name ?? "unknown",
         message: err.message,
       });
     }
