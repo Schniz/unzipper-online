@@ -1,13 +1,26 @@
 import { GetServerSideProps } from "next";
-import { File, listFilesInZip } from "../src/unzip";
-import { unzip } from "../src/zip";
+import { unzip, unzipBlob, bufferZipFile, File } from "../src/zip";
 import { validateUrl } from "../src/validateUrl";
 import { useRef, useState, useEffect, ChangeEvent } from "react";
 import { useRouter } from "next/router";
 import DocumentIcon from "heroicons/react/solid/Document";
 import DocumentIconOutline from "heroicons/react/outline/Document";
 import Head from "next/head";
-import { AxiosError } from "axios";
+
+type Props =
+  | {
+      state: "errorReading";
+      message: string;
+      archive: string;
+    }
+  | {
+      state: "listFiles";
+      archive: string;
+      zipfile: string;
+    }
+  | {
+      state: "home";
+    };
 
 type PageState =
   | {
@@ -25,16 +38,45 @@ type PageState =
       state: "home";
     };
 
-export default function Home(props: PageState): NonNullable<React.ReactNode> {
+async function unzipServerFile(props: Props): Promise<PageState> {
+  if (props.state === "listFiles") {
+    const extracted = await unzip(props.zipfile);
+    return {
+      ...props,
+      files: extracted.files.map((e) => ({
+        type: e.dir ? "Directory" : "File",
+        fileName: e.name,
+      })),
+      origin: "Server",
+    };
+  }
+  return props;
+}
+
+function defualtFiles(props: Props): PageState {
+  if (props.state === "listFiles") {
+    return {
+      ...props,
+      files: [],
+      origin: "Server",
+    };
+  }
+  return props;
+}
+
+export default function Home(props: Props): NonNullable<React.ReactNode> {
   const textInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const [pageState, setPageState] = useState<PageState>(props);
+  const [pageState, setPageState] = useState<PageState>(defualtFiles(props));
   useEffect(() => {
-    setPageState(props);
+    unzipServerFile(props).then(setPageState);
   }, [props]);
-  const userSelectedFile = async (a: ChangeEvent<HTMLInputElement>) => {
+  const userSelectedFile = async (e: ChangeEvent<HTMLInputElement>) => {
     try {
-      const zip = await unzip(a.target.files?.[0]);
+      if (!e.target.files?.[0]) {
+        throw new Error("File not selected");
+      }
+      const zip = await unzipBlob(e.target.files[0]);
       setPageState({
         origin: "Client",
         state: "listFiles",
@@ -47,7 +89,7 @@ export default function Home(props: PageState): NonNullable<React.ReactNode> {
     } catch (err) {
       setPageState({
         state: "errorReading",
-        archive: a.target.files?.[0].name ?? "unknown",
+        archive: e.target.files?.[0].name ?? "unknown",
         message: err.message,
       });
     }
@@ -155,9 +197,7 @@ export default function Home(props: PageState): NonNullable<React.ReactNode> {
   );
 }
 
-export const getServerSideProps: GetServerSideProps<PageState> = async (
-  ctx
-) => {
+export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const { archive } = ctx.query;
 
   if (archive) {
@@ -167,7 +207,7 @@ export const getServerSideProps: GetServerSideProps<PageState> = async (
 
     validateUrl(archive);
     try {
-      const files = await listFilesInZip(archive);
+      const zipfile = await bufferZipFile(archive);
       ctx.res.setHeader(
         "Cache-Control",
         "s-maxage=3600, stale-while-revalidate"
@@ -175,14 +215,12 @@ export const getServerSideProps: GetServerSideProps<PageState> = async (
 
       return {
         props: {
-          origin: "Server",
           state: "listFiles",
           archive,
-          files,
+          zipfile,
         },
       };
     } catch (e) {
-      ctx.res.statusCode = (e as AxiosError).response?.status ?? 500;
       return {
         props: {
           state: "errorReading",
