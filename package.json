@@ -9,6 +9,7 @@
     "build": "next build"
   },
   "dependencies": {
+    "axios": "^0.21.0",
     "cssnano": "^4.1.10",
     "heroicons": "^0.4.2",
     "jszip": "^3.5.0",
